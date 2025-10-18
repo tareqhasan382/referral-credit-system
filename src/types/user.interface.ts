@@ -15,6 +15,11 @@ export type IRegisterUser = {
     password: string;
 };
 
+export type ILoginUser = {
+    email: string;
+    password: string;
+};
+
 export type IUserResponse = {
     _id?: string;
     name: string;
