@@ -13,6 +13,7 @@ export type IRegisterUser = {
     name: string;
     email: string;
     password: string;
+    referralCode: string;
 };
 
 export type ILoginUser = {
