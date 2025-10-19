@@ -1,3 +1,4 @@
+import {Types} from "mongoose";
 
 export type IUser = {
     _id?: string;
@@ -5,8 +6,10 @@ export type IUser = {
     email: string;
     password: string;
     referralCode: string;
-    referredBy?: string;
+    referredBy?: Types.ObjectId;
     credits: number;
+    hasEarnedReferralCredit: boolean;
+    referrals: Types.ObjectId[];
 };
 
 export type IRegisterUser = {

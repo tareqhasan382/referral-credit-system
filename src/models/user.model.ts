@@ -9,8 +9,10 @@ const userSchema = new Schema<IUser>(
         email: { type: String, unique: true, required: true },
         password: { type: String, required: true },
         referralCode: { type: String, unique: true },
-        referredBy: { type: String },
+        referredBy: {type: Schema.Types.ObjectId, ref: 'User' },
         credits: { type: Number, default: 0 },
+        hasEarnedReferralCredit: { type: Boolean, default: false },
+        referrals: [{type: Schema.Types.ObjectId, ref: 'Referral'}]
     },
     { timestamps: true }
 );
