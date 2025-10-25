@@ -1,75 +1,70 @@
-import { Types } from "mongoose";
+import mongoose from "mongoose";
 import { IPurchaseRequestBody } from "../controllers/purchase.controller";
-import { UserModel } from "../models/user.model"; // Import your User Model
-import { ReferralModel } from "../models/referral.model"; // Import your Referral Model
-import { OrderModel } from "../models/order.model"; // Import your Order Model
+import { UserModel } from "../models/user.model";
+import { ReferralModel } from "../models/referral.model";
 
-const CREDIT_AMOUNT = 2;
-const handleReferralCredit = async (referredUserId: Types.ObjectId) => {
-    const referredUser = await UserModel.findById(referredUserId);
-
-    if (!referredUser || referredUser.hasEarnedReferralCredit) return;
-
-    const referralRecord = await ReferralModel.findOne({
-        referredUser: referredUserId,
-        status: "pending",
-    });
-
-    if (!referralRecord) return;
-
-    // 3. Find the referrer (Lina)
-    const referrer = await UserModel.findById(referralRecord.referrer);
-    if (!referrer) return console.error("Referrer not found, check data integrity.");
-
-    // --- Award Credits and Update Status ---
-
-    // Award to Referrer (Lina)
-    referrer.credits += CREDIT_AMOUNT;
-    await referrer.save();
-
-    // Award to Referred User (Ryan) and set flag to prevent future awards
-    referredUser.credits += CREDIT_AMOUNT;
-    referredUser.hasEarnedReferralCredit = true;
-    await referredUser.save();
-
-    // Update Referral Status
-    referralRecord.status = "converted";
-    await referralRecord.save();
-
-    console.log(`Referral converted. ${referrer.name} and ${referredUser.name} both earned ${CREDIT_AMOUNT} credits.`);
-};
 
 const createOrder = async (data: IPurchaseRequestBody) => {
-    console.log("data---------->", data);
-    // const userId = new Types.ObjectId(data.userId);
-    // const completedOrdersCount = await OrderModel.countDocuments({
-    //     user: userId,
-    //     status: 'completed'
-    // });
+    const user = new mongoose.Types.ObjectId(data?.userId);
+    const referral = await ReferralModel.aggregate([
+        { $match: { referredUser: user } },
+        {
+            $lookup: {
+                from: "users",
+                localField: "referrer",
+                foreignField: "_id",
+                as: "referrerDetails",
+            },
+        },
+        { $unwind: { path: "$referrerDetails", preserveNullAndEmptyArrays: true } },
+    ]);
 
-    //const isFirstPurchase = completedOrdersCount === 0;
+    // If the user was never referred, skip referral credit logic
+    if (!referral.length) {
+        console.log("No referral found for this user.");
+        return { message: "Order created, no referral applied." };
+    }
 
-    // 2. Create the new Order record
-    // const newOrder = await OrderModel.create({
-    //     user: userId,
-    //     totalAmount: data.amount,
-    //     status: 'completed',
-    // });
-    //
-    // if (isFirstPurchase) {
-    //     console.log("First purchase detected. Executing referral credit logic...");
-    //     await handleReferralCredit(userId);
-    // } else {
-    //     console.log("Not the first purchase; skipping referral credit.");
-    // }
-    //
-    // return {
-    //     orderId: newOrder._id,
-    //     userId: userId,
-    //     amount: newOrder.totalAmount,
-    //     isCreditAwarded: isFirstPurchase
-    // };
-    return data;
+    const refData = referral[0];
+    console.log("Referral data--->", refData);
+    const referrerId = refData.referrerDetails?._id;
+    const referredUserId = refData.referredUser;
+
+    // Fetch referred user's  to check if credits already earned
+    const referredUser = await UserModel.findById(referredUserId);
+
+    if (!referredUser) {
+        throw new Error("Referred user not found.");
+    }
+
+    // Prevent giving credits more than once
+    if (referredUser.hasEarnedReferralCredit) {
+        console.log("Referral credits already given for this user.");
+        return { message: "Order created, referral credits already applied." };
+    }
+
+    // Add credits to both users
+    await Promise.all([
+        UserModel.findByIdAndUpdate(referrerId, {
+            $inc: { credits: 2 },
+        }),
+        UserModel.findByIdAndUpdate(referredUserId, {
+            $inc: { credits: 2 },
+            $set: { hasEarnedReferralCredit: true },
+        }),
+        ReferralModel.updateOne(
+            { referredUser: referredUserId },
+            { $set: { status: "converted" } }
+        ),
+    ]);
+
+    console.log("Referral credits applied to both users.");
+
+    return {
+        referrerId,
+        referredUserId,
+    };
+
 };
 
 export default { createOrder };

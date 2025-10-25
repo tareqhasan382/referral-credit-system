@@ -1,7 +1,6 @@
 import { Request, Response } from 'express';
 import ApiResponse from "../utils/ApiResponse";
 import PurchaseService from "../services/purchase.service";
-import mongoose from "mongoose";
 
 export type IPurchaseRequestBody = {
     userId: string;

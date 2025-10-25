@@ -31,7 +31,7 @@ if (process.env.NODE_ENV !== 'test') {
 app.use("/api/v1", healthRoutes); // health check
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/referral", referralRoutes);
-app.use("/api/v1/Purchase", purchaseRoutes);
+app.use("/api/v1/purchase", purchaseRoutes);
 app.use(notFound);
 app.use(errorHandler); 
 
