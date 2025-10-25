@@ -13,7 +13,6 @@ const register = async (req: Request, res: Response) => {
 };
 const login = async (req: Request, res: Response) => {
     try {
-        //const { email, password } = req.body;
         const {user, accessToken, refreshToken } = await AuthService.loginUser(req.body);
         res.cookie("refreshToken", refreshToken, {
             httpOnly: config.jwt.jwt_cookie_secure === "true",

@@ -9,6 +9,7 @@ import errorHandler from "./middlewares/errorHandler";
 import cookieParser from "cookie-parser";
 import authRoutes from "./routes/auth.routes";
 import referralRoutes from "./routes/referral.routes";
+import purchaseRoutes from "./routes/purchase.routes";
 dotenv.config();
 
 const app = express();
@@ -30,7 +31,8 @@ if (process.env.NODE_ENV !== 'test') {
 app.use("/api/v1", healthRoutes); // health check
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/referral", referralRoutes);
-app.use(notFound); 
+app.use("/api/v1/Purchase", purchaseRoutes);
+app.use(notFound);
 app.use(errorHandler); 
 
 export default app;
